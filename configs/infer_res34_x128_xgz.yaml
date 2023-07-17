@@ -1,0 +1,19 @@
+LOG_DIR: 'log'
+EXP_NAME: 'inference/res34_x128_xgz'
+
+DETECTOR:
+  PRETRAINED: 'data/R50-0000.params'
+  IMAGE_SIZE: 640
+
+PREDICTOR:
+  MODE: 'vertex'
+  BACKBONE_TYPE: 'resnet'
+  PRETRAINED: 'data/res34_x128_vert_xgz.pth'
+  NUM_LAYERS: 34
+  NUM_POINTS_OUT_FACE: 68
+  NUM_POINTS_OUT_EYES: 978
+  PREDICT_FACE: False
+  GAZE_IS_RELATIVE_TO_FACE: False
+  GAZE_IS_VECTOR: True
+  IMAGE_SIZE: [ 128, 128 ]
+

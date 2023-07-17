@@ -15,9 +15,10 @@ $ conda env create --file env_requirements.yaml
 
 ## How to run the demo with the available models
 
-Download the data from [here](https://drive.google.com/file/d/13Xw1Dx49oJ45TztACz_5fwy38cwvXMdD/view?usp=sharing).
-- RGB models: `python inference.py --cfg configs/infer_res34_x128_xgz.yaml --video_path data/movies/movie_ogs.mp4 --no_draw`
+Download and extract the data from [here](https://drive.google.com/file/d/13Xw1Dx49oJ45TztACz_5fwy38cwvXMdD/view?usp=sharing).
 
+To run the code:
+- RGB models: `python inference.py --cfg configs/infer_res34_x128_xgz.yaml --video_path data/movies/movie_ogs.mp4 --no_draw`
 
 Remove the flag `--no_draw` to export frames with the predicted gaze direction drawn on top (the exported frames are
 saved in the `data` directory). Overall FPS will drop due to added export time.

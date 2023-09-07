@@ -1,3 +1,10 @@
 data/
 log/
+output/
+results/
+
+# demo
+demo/data/
+demo/log/
+
 *__pycache__

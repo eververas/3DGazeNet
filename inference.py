@@ -16,10 +16,14 @@ torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
 torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
 os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
 
+import cv2
+import numpy as np
+
 
 @Timer(name='Forward', fps=True, pprint=False)
 def infer_once(img, detector, predictor, draw):
     out_img = None
+    out_gaze = None
     detector_scale = detector.dispatch_gpu(img)
     bboxes, lms5 = detector.get_results(detector_scale)
 
@@ -29,10 +33,10 @@ def infer_once(img, detector, predictor, draw):
         idxs_sorted = sorted(range(bboxes.shape[0]), key=lambda k: bboxes[k][3] - bboxes[k][1])
         lms5 = lms5[idxs_sorted[-1]]
         bboxes = bboxes[idxs_sorted[-1]]
-        gaze = predictor(img, lms5)
-        if draw:
-            out_img = draw_results(img, bboxes, gaze)
-    return out_img
+        out_gaze = predictor(img, lms5)
+        if draw and out_gaze is not None:
+            out_img = draw_results(img, bboxes, out_gaze)
+    return out_img, out_gaze
 
 
 def inference(cfg, video_path, draw):
@@ -46,7 +50,7 @@ def inference(cfg, video_path, draw):
     for frame_idx, input in tq:
         if input is None:
             break
-        out_img = infer_once(input, detector, predictor, draw)
+        out_img, out_gaze = infer_once(input, detector, predictor, draw)
         if out_img is not None:
             description = '{fwd} {ft:.2f} | {det} {det_res:.2f} | {nms} {asgn:.2f} | {ep} {pred:.2f}'.format(
                 fwd='Inference avg fps:',
@@ -77,8 +81,6 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    state_dict = torch.load(cfg.PREDICTOR.PRETRAINED, map_location=lambda storage, loc: storage)['state_dict']
-    torch.save(state_dict, cfg.PREDICTOR.PRETRAINED)
     exp_save_path = f'log/{cfg.EXP_NAME}'
     logger = get_logger(exp_save_path, save=True, use_tqdm=True)
     # ugly workaround

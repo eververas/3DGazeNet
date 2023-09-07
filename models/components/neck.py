@@ -1,25 +1,7 @@
 import torch.nn as nn
 import torch
 
-
-class SiLU(nn.Module):
-    def __init__(self):
-        super(SiLU, self).__init__()
-
-    def forward(self, x):
-        x = x * torch.sigmoid(x)
-        return x
-
-
-
-def conv_nxn_bn(inp, oup, kernel_size=3, stride=1, padding=1, use_act=True, bias=False,use_bias=False):
-    the_module = nn.Sequential()
-    the_module.add_module(name='conv2d', module=nn.Conv2d(inp, oup, kernel_size, stride, padding, bias=bias))
-    if use_bias:
-        the_module.add_module(name='bn', module=nn.BatchNorm2d(oup))
-    if use_act:
-        the_module.add_module(name=f'silu', module=SiLU())
-    return the_module
+# from .utils import SiLU, conv_nxn_bn
 
 
 class BaseNeck(nn.Module):

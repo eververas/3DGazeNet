@@ -1,6 +1,6 @@
 # You need to modify the name and the prefix of the env.
-name: eyes3d
-prefix: # path of the env location
+name: eyes3d-github
+# prefix: # path of the env location
 channels:
   - conda-forge
   - defaults
@@ -198,7 +198,7 @@ dependencies:
   - zstd=1.4.9=haebb681_0
   - pip:
     - einops==0.4.1
-    - mxnet-cu102==1.7.0
+    - mxnet-cu117==1.9.1
     - opencv-python==4.5.2.52
     - thop==0.0.31-2005241907
     - timm==0.6.7

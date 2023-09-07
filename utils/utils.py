@@ -1,31 +1,50 @@
 import os
-
 import cv2
-import numpy as np
 import copy
+import torch
+import numpy as np
+import _pickle as cPickle
 from matplotlib import pyplot as plt
 
 
-def get_gaze_pitchyaws_from_vectors(vectors):
-    n = vectors.shape[0]
-    out = np.empty((n, 2))
-    vectors = np.divide(vectors, np.linalg.norm(vectors, axis=1).reshape(n, 1))
-    out[:, 0] = np.arcsin(vectors[:, 1])  # theta
-    out[:, 1] = np.arctan(vectors[:, 0] / vectors[:, 2])  # phi
-    if n == 1:
-        out = out[0]
-    return out
+def load_eyes3d(fname_eyes3d='data/eyes3d.pkl'):
+    with open(fname_eyes3d, 'rb') as f:
+        eyes3d = cPickle.load(f)
+    iris_idxs = eyes3d['left_iris_lms_idx']
+    idxs481 = eyes3d['mask481']['idxs']
+    iris_idxs481 = eyes3d['mask481']['idxs_iris']
+    idxs288 = eyes3d['mask288']['idxs']
+    iris_idxs288 = eyes3d['mask288']['idxs_iris']
+    trilist_eye = eyes3d['mask481']['trilist']
+    eyel_template = eyes3d['left_points'][idxs481]
+    eyer_template = eyes3d['right_points'][idxs481]
+    eye_template = {
+        'left': eyes3d['left_points'][idxs481],
+        'right': eyes3d['right_points'][idxs481]
+    }
+    eye_template_homo = {
+        'left': np.append(eye_template['left'], np.ones((eyel_template.shape[0], 1)), axis=1),
+        'right': np.append(eye_template['right'], np.ones((eyer_template.shape[0], 1)), axis=1)
+    }
+    eyes3d_dict = {
+        'iris_idxs': iris_idxs, 
+        'idxs481': idxs481, 
+        'iris_idxs481': iris_idxs481, 
+        'idxs288': idxs288,
+        'iris_idxs288': iris_idxs288,
+        'trilist_eye': trilist_eye, 
+        'eye_template': eye_template,
+        'eye_template_homo': eye_template_homo
+    }
+    return eyes3d_dict
 
 
-def get_gaze_pitchyaws_from_eyes(eye, iris_lms_idx):
-    p_iris = eye[iris_lms_idx] - eye[:32].mean(axis=0)
-    vector = p_iris.mean(axis=0)[np.newaxis, :]
-
-    out = np.empty(2)
-    vector = np.divide(vector, np.linalg.norm(vector, axis=1).reshape(1, 1))
-    out[0] = np.arcsin(vector[:, 1])  # theta
-    out[1] = np.arctan(vector[:, 0] / vector[:, 2])  # phi
-    return out, vector
+def points_to_vector(points, iris_lms_idx):
+    back = points[:, np.arange(32)].mean(axis=1, keepdim=True) # (B, 1, 3)
+    front = points[:, iris_lms_idx].mean(axis=1, keepdim=True) # (B, 1, 3)
+    vec = front - back
+    vec = vec / torch.norm(vec, dim=2, keepdim=True)  # (B, 1, 3)
+    return torch.squeeze(vec, dim=1)
 
 
 def show_result(img, bboxes=None, keypoints=None, gaze=None, title=None):
@@ -78,7 +97,7 @@ def show_result(img, bboxes=None, keypoints=None, gaze=None, title=None):
 def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True):
     # Resize image to a 32-pixel-multiple rectangle https://github.com/ultralytics/yolov5
 
-    shape = img.shape[:2]  # current shape [height, width]
+    shape = img_cv.shape[:2]  # current shape [height, width]
     if isinstance(new_shape, int):
         new_shape = (new_shape, new_shape)
 
@@ -110,23 +129,80 @@ def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scale
     return img, ratio, (dw, dh)
 
 
-def draw_gaze(img, diag, gaze_dict, color=(255, 0, 0), from_angle='gaze_angle_from_vector'):
-    ry, rx = gaze_dict[from_angle]
-    dx = 0.4 * diag * np.sin(-rx)
-    dy = 0.4 * diag * np.sin(-ry)
-    pt1 = gaze_dict['eye_center']
-    pt2 = np.array((pt1[0] + dx, pt1[1] + dy)).astype(np.int32)
-    cv2.arrowedLine(img, pt1, pt2, color, 2)
 
-    return img
+def trans_verts_from_patch_to_org(verts_in_patch, org_width, patch_width, trans=None):
+    verts_in_org = verts_in_patch.copy()
+    verts_in_org[:, :2] = affine_transform_array(verts_in_patch[:, :2], trans)
+    verts_in_org[:, 2] = verts_in_patch[:, 2] / patch_width * org_width
+    return verts_in_org
+
+def affine_transform_array(verts, P):
+    verts = np.concatenate((verts, np.ones((verts.shape[0], 1))), axis=1)
+    new_verts = (P @ verts.T).T # (N, 2)
+    return new_verts[:, :2]
 
 
-def draw_results(img, bbox, gaze):
-    # render gaze + borders for each face in image
-    # get gaze arrow
+def draw_gaze(img_cv, diag, gaze_dict):
+    thickness = int(8 * diag / img_cv.shape[0])
+    vector_norm = int(70 * diag / img_cv.shape[0])
+
+    cnt = gaze_dict['centers']['face']
+    gaze = gaze_dict['gaze_combined'] if gaze_dict['gaze_combined'] is not None else gaze_dict['gaze']
+    # gaze vector in image space
+    g_vector = - gaze * vector_norm
+    g_point = cnt + g_vector[:2]
+    # draw gaze vector
+    pt1 = cnt.astype(np.int32)
+    pt2 = g_point.astype(np.int32)
+    cv2.arrowedLine(img_cv, pt1, pt2, [0, 0, 255], thickness, tipLength=0.2)
+
+    return img_cv
+
+def draw_eyes(img_cv, diag, gaze_dict, face_elem='face'):
+    thickness_eyes = int(3 * diag / img_cv.shape[0])
+    thickness_gaze = int(5 * diag / img_cv.shape[0])
+    vector_norm = int(70 * diag / img_cv.shape[0])
+    iris_idxs = gaze_dict['iris_idxs']
+
+    # draw eyeballs
+    for side, eye in gaze_dict['verts_eyes'].items():
+        cnt = eye[:32].mean(axis=0)
+        radius = int(np.linalg.norm(cnt - eye[0]))
+        img_cv = cv2.circle(
+            img_cv, tuple(cnt[:2].astype(np.int32).tolist()), radius, [155, 0, 0], thickness_eyes)
+    # draw irises
+    for side, eye in gaze_dict['verts_eyes'].items():
+        iris8 = eye[iris_idxs][:, :2]
+        for i_idx in range(iris8.shape[0]):
+            pt1 = tuple(iris8[i_idx].astype(np.int32).tolist())
+            pt2 = tuple(iris8[(i_idx + 1) % 8].astype(np.int32).tolist())
+            img_cv = cv2.line(img_cv, pt1, pt2, [155, 0, 0], thickness_eyes)
+    # draw gaze vectors
+    for side, eye in gaze_dict['verts_eyes'].items():
+        # gaze vector eye in image space
+        # g_vector = - gaze_dict['gaze_from_eyes'][side] * vector_norm
+        g_vector = - gaze_dict['gaze_combined'] * vector_norm
+        g_point = eye[iris_idxs].mean(axis=0) + g_vector
+        # draw gaze vectors
+        pt1 = eye[iris_idxs].mean(axis=0)[:2].astype(np.int32)
+        pt2 = g_point[:2].astype(np.int32)
+        cv2.arrowedLine(img_cv, pt1, pt2, [0, 0, 255], thickness_gaze, tipLength=0.2)
+
+    return img_cv
+
+
+def draw_results(img_cv, bbox, gaze_dict):
+    # render gaze for face in image
     diag = np.linalg.norm(np.array([bbox[1], bbox[2]]) - np.array([bbox[3], bbox[0]]))
-    for eye_str in ['left_eye', 'right_eye']:
-        gaze_dict = gaze[eye_str]
-        img = draw_gaze(img, diag, gaze_dict, color=(0, 0, 255), from_angle='gaze_angle_from_vector')
-        # img = draw_gaze(img, diag, gaze_dict, color=(1, 190, 200), from_angle='gaze_angle_from_eyes')
-    return img
+    center = gaze_dict['centers']['face']
+    
+    if gaze_dict['verts_eyes'] is None:
+        img_cv = draw_gaze(img_cv, diag, gaze_dict)
+    else:
+        img_cv = draw_eyes(img_cv, diag, gaze_dict)
+        img_cv = draw_gaze(img_cv, diag, gaze_dict)
+
+    return img_cv
+
+
+

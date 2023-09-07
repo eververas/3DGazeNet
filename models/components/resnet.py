@@ -3,9 +3,6 @@ import torch
 import torch.nn as nn
 from collections import OrderedDict
 
-from ...utils import get_logger
-
-logger = get_logger(__name__)
 BN_MOMENTUM = 0.1
 
 
@@ -171,36 +168,3 @@ class ResNet(nn.Module):
         x4 = self.layer3(x3)
         x5 = self.layer4(x4)
         return x5, (x1, x2, x3, x4, x5)
-
-    # def init_weights(self, pretrained=''):
-    #     print('exists {}? :{}'.format(pretrained, os.path.isfile(pretrained)))
-    #     if os.path.isfile(pretrained):
-    #         # pretrained_state_dict = torch.load(pretrained)
-    #         logger.info('=> loading pretrained backbone {}'.format(pretrained))
-    #         # self.load_state_dict(pretrained_state_dict, strict=False)
-    #         checkpoint = torch.load(pretrained)
-    #         if isinstance(checkpoint, OrderedDict):
-    #             state_dict = checkpoint
-    #         elif isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
-    #             state_dict_old = checkpoint['state_dict']
-    #             state_dict = OrderedDict()
-    #             # delete 'module.' because it is saved from DataParallel module
-    #             for key in state_dict_old.keys():
-    #                 if key.startswith('module.'):
-    #                     # state_dict[key[7:]] = state_dict[key]
-    #                     # state_dict.pop(key)
-    #                     state_dict[key[7:]] = state_dict_old[key]
-    #                 else:
-    #                     state_dict[key] = state_dict_old[key]
-    #         else:
-    #             raise RuntimeError(
-    #                 'No state_dict found in checkpoint file {}'.format(pretrained))
-    #         if 'final_layer.weight' in state_dict.keys():
-    #             logger.info('removing the final layers.')
-    #             del state_dict['final_layer.weight']
-    #             del state_dict['final_layer.bias']
-    #             logger.info('=> loading pretrained backbone {}'.format(pretrained))
-    #
-    #         self.load_state_dict(state_dict, strict=False)
-    #     else:
-    #         print('Could not find {}!!'.format(pretrained))

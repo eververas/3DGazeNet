@@ -1,14 +1,14 @@
 LOG_DIR: 'log'
-EXP_NAME: 'inference/res18_x128_xgz'
+EXP_NAME: 'inference/res18_x128_g360'
 
 DETECTOR:
   PRETRAINED: 'data/R50-0000.params'
   IMAGE_SIZE: 640
 
 PREDICTOR:
-  MODE: 'vertex'
+  MODE: 'gaze'
   BACKBONE_TYPE: 'resnet'
-  PRETRAINED: 'data/res18_x128_vert_xgz.pth'
+  PRETRAINED: 'data/res18_x128_gaze_g360.pth'
   NUM_LAYERS: 18
   NUM_POINTS_OUT_EYES: 962
   IMAGE_SIZE: [ 128, 128 ]

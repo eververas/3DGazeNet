@@ -1,14 +1,9 @@
 import torch
 import torch.nn as nn
-from lib.models.backbones.utils import SiLU, LayerNorm, conv_nxn_bn, conv_1x1_bn
+import os.path as osp
 
 from collections import OrderedDict
-
-import os.path as osp
-from lib.utils.utils import get_logger
-
-logger = get_logger(__name__)
-
+# from .utils import SiLU, LayerNorm, conv_nxn_bn, conv_1x1_bn
 
 class PreNorm(nn.Module):
     def __init__(self, dim, fn):

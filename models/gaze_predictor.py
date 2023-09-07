@@ -1,5 +1,4 @@
 from collections import OrderedDict
-import _pickle as cPickle
 
 import torch
 import torch.nn as nn
@@ -7,8 +6,7 @@ import numpy as np
 
 from .builder import build_backbone
 from .builder import build_neck
-from utils import get_input_and_transform, show_result, Timer, get_gaze_pitchyaws_from_vectors, \
-    get_gaze_pitchyaws_from_eyes
+from utils import get_input_and_transform, show_result, Timer, points_to_vector, load_eyes3d, trans_verts_from_patch_to_org
 
 
 class GazePredictorHandler:
@@ -23,169 +21,150 @@ class GazePredictorHandler:
             state_dict = pretrained_ckpt['state_dict']
         else:
             raise "Unable to recognize state dict"
-        iris_data = self.load_eyes3d()
-        self.iris_idxs, self.idxs481, self.iris_idxs481, self.idxs288, self.iris_idxs288, self.trilist_eye, \
-        self.eye_template_homo = iris_data
+        eyes3d_dict = load_eyes3d()
+        self.iris_idxs481 = eyes3d_dict['iris_idxs481']
+        self.trilist_eye = eyes3d_dict['trilist_eye']
+        self.eye_template_homo = eyes3d_dict['eye_template_homo']
         self.model.load_state_dict(state_dict, strict=True)
-
         self.model.eval()
         self.crop_width, self.crop_height = cfg.IMAGE_SIZE[0], cfg.IMAGE_SIZE[1]
-        # pixel transformation for cnn model
         self.mean = torch.as_tensor([0.485, 0.456, 0.406])
         self.std = torch.as_tensor([0.229, 0.224, 0.225])
         self.face_elements = ['left_eye', 'right_eye', 'face']
 
     @Timer(name='GazePredictor', fps=True, pprint=False)
     def __call__(self, img, lms5, *args, **kwargs):
-        out_eyes = {}
-        part_to_input_args = (img, [self.crop_width, self.crop_height], 0, False)
+        out_dict = {}
+        input_size = self.crop_width
+        input_args = (img, [self.crop_width, self.crop_height], 0, False)
         diag1 = np.linalg.norm(lms5[0] - lms5[4])
         diag2 = np.linalg.norm(lms5[1] - lms5[3])
         diag = np.max([diag1, diag2])
-        face_crop_len = int(4 * diag)
+        # face_crop_len = int(4 * diag)
+        face_crop_len = int(1.5 * diag)
         eyes_crop_len = int(2 * diag / 5)
-
         centers = [lms5[1], lms5[0], lms5[2]]
-        crop_info = {'left_eye': {'center': centers[0], 'crop_len': [eyes_crop_len, eyes_crop_len]},
+        crop_info = {'left_eye' : {'center': centers[0], 'crop_len': [eyes_crop_len, eyes_crop_len]},
                      'right_eye': {'center': centers[1], 'crop_len': [eyes_crop_len, eyes_crop_len]},
-                     'face': {'center': centers[2], 'crop_len': [face_crop_len, face_crop_len]}}
+                     'face'     : {'center': centers[2], 'crop_len': [face_crop_len, face_crop_len]}}
 
         input_list = []
-        # scale = []
-        # trsl = []
+        trans_list = []
         for eye_str in self.face_elements:
             cnt = crop_info[eye_str]['center']
             crop_len = crop_info[eye_str]['crop_len']
             # resize to model preferences
-            trans, img_patch_cv = get_input_and_transform(cnt, crop_len, *part_to_input_args)
-            np_img_patch_copy = img_patch_cv.copy()
-            np_img_patch_copy = np.transpose(np_img_patch_copy, (2, 0, 1)) / 255  # (C,H,W) and between 0,1
-            torch_img_patch = torch.as_tensor(np_img_patch_copy, dtype=torch.float32)  # torch and from int to float
-            torch_img_patch.sub_(self.mean.view(-1, 1, 1)).div_(self.std.view(-1, 1, 1))
-            input_list.append(torch_img_patch)
+            trans, img_patch_cv = get_input_and_transform(cnt, crop_len, *input_args)
+            img_patch_cv = np.transpose(img_patch_cv, (2, 0, 1)) / 255  # (C,H,W) and between 0,1
+            img_patch_torch = torch.as_tensor(img_patch_cv, dtype=torch.float32)  # to torch and from int to float
+            img_patch_torch.sub_(self.mean.view(-1, 1, 1)).div_(self.std.view(-1, 1, 1))
+            input_list += [img_patch_torch]
+            trans_list += [trans]
+        # invert transforms image -> patch
+        trans_list_inv = []
+        for i in range(2):
+            try:
+                trans_list[i] = np.concatenate((trans_list[i], np.array([[0, 0, 1]])))
+                trans_list_inv += [np.linalg.inv(trans_list[i])[:2]]
+            except:
+                print(f'Error inverting bbox crop transform')
+                return None
 
         # Model Inference ---------------------------------------------------------------------------
         model_input = torch.cat(input_list).unsqueeze(0).to(self.device)
         verts_eyes, verts_face, gaze = self.model(model_input)
 
-        gaze_normalized_vector = gaze.detach().cpu().numpy()
-
         if self.predict_eyes:
-            gaze_normalized_vector[:, 2] *= -1
-            verts_eyes = verts_eyes.detach().cpu().numpy().reshape(2, verts_eyes.shape[1] // 2, 3)
+            verts_left = verts_eyes[:, :int(verts_eyes.shape[1] / 2)].clone()
+            verts_right = verts_eyes[:, int(verts_eyes.shape[1] / 2):].clone()
+            # calculate gaze from eyes
+            gaze_left = points_to_vector(verts_left * (-1), self.iris_idxs481)
+            gaze_right = points_to_vector(verts_right * (-1), self.iris_idxs481)
+            gaze_face = gaze_left + gaze_right
+            gaze_face /= torch.norm(gaze_face, dim=1, keepdim=True) 
+            # calculate combined gaze
+            gaze_combined = gaze_face + gaze
+            gaze_combined /= torch.norm(gaze_combined, dim=1, keepdim=True)
+            # move to cpu
+            verts_left = verts_left.detach().cpu().numpy()
+            verts_right = verts_right.detach().cpu().numpy()
+            gaze_left = gaze_left.detach().cpu().numpy()
+            gaze_right = gaze_right.detach().cpu().numpy()
+            gaze_face = gaze_face.detach().cpu().numpy()
+            gaze_combined = gaze_combined.detach().cpu().numpy()
+            # undo scale+translation patch -> pred_space
+            verts_left[:, :, [0, 1]] = (verts_left[:, :, [0, 1]] + 1.) * (input_size / 2)
+            verts_left[:, :, 2] *= (input_size / 2)
+            verts_right[:, :, [0, 1]] = (verts_right[:, :, [0, 1]] + 1.) * (input_size / 2)
+            verts_right[:, :, 2] *= (input_size / 2)
+            # undo transform image -> patch
+            verts_left_in_img = trans_verts_from_patch_to_org(
+                verts_left[0], eyes_crop_len, input_size, trans=trans_list_inv[0])
+            verts_right_in_img = trans_verts_from_patch_to_org(
+                verts_right[0], eyes_crop_len, input_size, trans=trans_list_inv[1])
+        gaze = gaze.detach().cpu().numpy()
 
-        # put points back on original image -----------------------------------------------------------------------
-        for ei in range(2):
-            eye_str = self.face_elements[ei]
-            # transform output to original image space
-            gaze_angle_from_vector = get_gaze_pitchyaws_from_vectors(gaze_normalized_vector)
-            out_eyes[eye_str] = {'gaze_angle_from_vector': gaze_angle_from_vector,
-                                 'eye_center': centers[ei].astype(np.int)}
-            if self.predict_eyes:
-                gaze_angle_from_eye, eyes_normalized_vector = get_gaze_pitchyaws_from_eyes(verts_eyes[ei],
-                                                                                           self.iris_idxs)
-                out_eyes[eye_str]['gaze_angle_from_eyes'] = gaze_angle_from_eye
+        # make output dict
+        out_dict.update({
+            'gaze': gaze[0],
+            'centers': {
+                'left': centers[0].astype(np.int),
+                'right': centers[1].astype(np.int),
+                'face': centers[2].astype(np.int)},
+            'iris_idxs': None,
+            'verts_eyes': None,
+            'centers_iris': None,
+            'gaze_from_eyes': None,
+            'gaze_combined': None
+        })
+        if self.predict_eyes:
+            out_dict['verts_eyes'] = {'left': verts_left_in_img, 'right': verts_right_in_img}
+            out_dict['centers_iris'] = {
+                'left': verts_left_in_img[self.iris_idxs481][:, :2].mean(axis=0),
+                'right': verts_right_in_img[self.iris_idxs481][:, :2].mean(axis=0)}
+            out_dict['iris_idxs'] = self.iris_idxs481
+            out_dict['gaze_from_eyes'] = {'left':  gaze_left[0], 'right': gaze_right[0], 'face':  gaze_face[0]}
+            out_dict['gaze_combined'] = gaze_combined[0]
 
-        # get gaze from points
-        # angles = (np.array(angles_l) + np.array(angles_r)) / 2.
-        # # fix scaling so the size of the eyeballs match
-        # out_l = out_eyes['left_eye']
-        # out_r = out_eyes['right_eye']
-        #
-        # radious_l = np.linalg.norm(out_l[0] - out_l[:32].mean(axis=0))
-        # radious_r = np.linalg.norm(out_r[0] - out_r[:32].mean(axis=0))
-        # scl_l = 1. + (1. - radious_l / radious_r) / 2
-        # scl_r = 1. + (1. - radious_r / radious_l) / 2
-        # cnt_l = out_l.mean(axis=0)
-        # cnt_r = out_r.mean(axis=0)
-        # out_l = scl_l * (out_l - cnt_l) + cnt_l
-        # out_r = scl_r * (out_r - cnt_r) + cnt_r
-
-        # # # get mean prediction using both eyes --------------------------------------------------------------------
-        # iris8_l = out_eyes['left_eye'][-8:]
-        # iris8_r = out_eyes['right_eye'][-8:]
-        # #
-        # # # translate to predicted center of iris
-        # out_l -= out_l[self.idxs_iris].mean(axis=0) - iris8_l.mean(axis=0)
-        # out_r -= out_r[self.idxs_iris].mean(axis=0) - iris8_r.mean(axis=0)
-        # #
-        # # # put results on output dict
-        # out_eyes['left_eye'] = out_l
-        # out_eyes['right_eye'] = out_r
-        # out_eyes['angles'] = angles
-        return out_eyes
-
-    @staticmethod
-    def load_eyes3d(fname_eyes3d='data/eyes3d.pkl'):
-        with open(fname_eyes3d, 'rb') as f:
-            eyes3d = cPickle.load(f)
-        iris_idxs = eyes3d['left_iris_lms_idx']
-        idxs481 = eyes3d['mask481']['idxs']
-        iris_idxs481 = eyes3d['mask481']['idxs_iris']
-        idxs288 = eyes3d['mask288']['idxs']
-        iris_idxs288 = eyes3d['mask288']['idxs_iris']
-        trilist_eye = eyes3d['mask481']['trilist']
-        eyel_template = eyes3d['left_points'][idxs481]
-        eyer_template = eyes3d['right_points'][idxs481]
-        eye_template = {
-            'left_eye': eyes3d['left_points'][idxs481],
-            'right_eye': eyes3d['right_points'][idxs481]
-        }
-        eye_template_homo = {
-            'left_eye': np.append(eye_template['left_eye'], np.ones((eyel_template.shape[0], 1)), axis=1),
-            'right_eye': np.append(eye_template['right_eye'], np.ones((eyer_template.shape[0], 1)), axis=1)
-        }
-
-        return iris_idxs, idxs481, iris_idxs481, idxs288, iris_idxs288, trilist_eye, eye_template_homo
+        return out_dict
 
 
 class GazePredictor(nn.Module):
 
     def __init__(self, cfg, predict_eyes=True):
         super(GazePredictor, self).__init__()
-
-        self.gaze_is_relative_to_face = cfg.GAZE_IS_RELATIVE_TO_FACE
+        img_size = cfg.IMAGE_SIZE[0]
         self.num_points_out_face = cfg.NUM_POINTS_OUT_FACE
         self.num_points_out_eyes = cfg.NUM_POINTS_OUT_EYES
-
         self.num_points_out_gaze = 3  # 3 for verctor, 2 for pitchyaws
         self.predict_eyes = predict_eyes
-        img_size = cfg.IMAGE_SIZE[0]
-
-        # dim_in = 9
-        # block_class, layers = self.RESNET_SPEC[cfg.MODEL_LAYERS]
-        # self.encoder = ResNet(block_class, layers, cfg, dim_in=dim_in)
-
+        
         self.encoder, dim_in = build_backbone(cfg)
-        # self.encoder.init_weights(init_func=cls_init_weights, pretrained=cfg.MODEL.BACKBONE_PRETRAINED)
-
         self.neck = build_neck(cfg, type(self.encoder).__name__)
+
         with torch.no_grad():
             nz_feat = self.neck(self.encoder(torch.rand(1, dim_in, img_size, img_size))[0])[0].shape[1]
-
         if self.predict_eyes:
             self.pred_layer_points_eyes = nn.Linear(nz_feat, self.num_points_out_eyes * 3)
             self.pred_layer_gaze_vec = nn.Linear(nz_feat, self.num_points_out_gaze)
         else:
             self.pred_layer_gaze = nn.Linear(nz_feat, self.num_points_out_gaze)
-
         self.pred_layer_points_face = nn.Linear(nz_feat, self.num_points_out_face * 3)
 
     @Timer(name='Forward Gaze Predictor', fps=True, pprint=False)
     def forward(self, x):
         batch_size = x.shape[0]
+
         feat = self.encoder(x)[0]
-
         reduced_features_eyes, reduced_features_face = self.neck(feat)
+        
         verts_eyes = None
-
         if self.predict_eyes:
-            verts_eyes = self.pred_layer_points_eyes(reduced_features_eyes).view(batch_size, self.num_points_out_eyes,
-                                                                                 3)
-            vecs_gaze = self.pred_layer_gaze_vec(reduced_features_eyes).view(batch_size, 3)
+            verts_eyes = self.pred_layer_points_eyes(reduced_features_eyes).view(batch_size, self.num_points_out_eyes, 3)
+            vecs_gaze = self.pred_layer_gaze_vec(reduced_features_eyes).view(batch_size, self.num_points_out_gaze)
             vecs_gaze = vecs_gaze / torch.norm(vecs_gaze, dim=1, keepdim=True)
         else:
-            vecs_gaze = self.pred_layer_gaze(reduced_features_eyes).view(batch_size, 3)
+            vecs_gaze = self.pred_layer_gaze(reduced_features_eyes).view(batch_size, self.num_points_out_gaze)
             vecs_gaze = vecs_gaze / torch.norm(vecs_gaze, dim=1, keepdim=True)
         verts_face = self.pred_layer_points_face(reduced_features_face).view(batch_size, self.num_points_out_face, 3)
 

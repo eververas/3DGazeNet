@@ -50,14 +50,11 @@ def gen_trans_from_patch_cv_tuples(center_xy, src_wh, dst_wh, rot, inv=False):
 
 def get_input_and_transform(center, width_height, cv_img_numpy, crop_size, rotation, do_flip):
     img_height, img_width, img_channels = cv_img_numpy.shape
-
     if do_flip:
         cv_img_numpy = cv_img_numpy[:, ::-1, :]
         center[0] = img_width - center[0] - 1
-
     trans = gen_trans_from_patch_cv_tuples(center, width_height, crop_size, rotation, inv=False)
     input = cv2.warpAffine(cv_img_numpy, trans, tuple(crop_size), flags=cv2.INTER_LINEAR)
-
     return trans, input
 
 

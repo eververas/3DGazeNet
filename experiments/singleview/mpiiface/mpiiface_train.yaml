@@ -1,0 +1,81 @@
+MODEL_DIR: 'vertex/MPII/test_0'
+OUTPUT_DIR: 'output'
+LOG_DIR: 'log'
+RESULTS_DIR: 'results'
+WORKERS: 16
+PRINT_FREQ: 100
+TEST_FREQ: 1
+MODE: 'vertex'
+# MODE: 'gaze'
+
+DATASET:
+  # we choose this as ground truth dataset ('xgaze')
+  TRAIN_DATASETS: [ 'mpiiface' ]
+  # we use this test dataset
+  TEST_DATASETS: [ 'mpiiface' ]
+  TEST_IDX: 0
+  BATCH_SIZE: 128
+  REPEAT: [ 1 ]
+  AUGMENTATION:
+    FLIP: True
+    ROT_FACTOR: 0
+    SCALE_FACTOR: 0.3
+    SHIFT_FACTOR: 0.1
+    COLOR_SCALE: 0.2
+    FLIP_AUG_RATE: 0.5
+    ROT_AUG_RATE: 0.6
+    IMG_RESCALE_RATE: 0.7 # 0->off
+    EXTENT_TO_CROP_RATIO: 2.
+
+MODEL:
+  PREDICT_FACE: False
+  NUM_POINTS_OUT_FACE: 68
+  NUM_POINTS_OUT_EYES: 962
+  IMAGE_SIZE: [ 128, 128 ]
+  BACKBONE_TYPE: 'resnet'
+  BACKBONE_PRETRAINED: 'data/models/imagenet/resnet18-5c106cde.pth'
+  NUM_LAYERS: 18
+
+LOSS:
+  # bsae loss weights
+  VERTEX_REGRESSION_WEIGHT_EYES: 0.1
+  VERTEX_REGRESSION_WEIGHT_FACE: 0.1
+  EDGE_LENGTH_LOSS_WEIGHT_EYES: 0.01
+  EDGE_LENGTH_LOSS_WEIGHT_FACE: 0.01
+  GAZE_ACOS_WEIGHT: 1.
+
+OPTIMIZER:
+  NAME: 'adam'
+  LR: 0.0001
+  WD: 0.0005
+# OPTIMIZER:
+#   NAME: 'adamw'
+#   LR: 0.0003
+#   WD: 0.025
+
+LR_SCHEDULER:
+  NAME: 'multi'
+  LR_FACTOR: 0.1
+  LR_STEP: [ 40,60 ]
+  WITH_WARMUP: False
+  WARMUP_ITERS: 600
+  WARMUP_RATE: 0.001
+# LR_SCHEDULER:
+#   NAME: 'exponential'
+#   LR_FACTOR: 0.97
+#   WITH_WARMUP: False
+#   WARMUP_ITERS: 600
+#   WARMUP_RATE: 0.001
+
+TRAIN:
+  SHUFFLE: True
+  BEGIN_EPOCH: 0
+  END_EPOCH: 80
+  RESUME: True
+
+TEST:
+  SHUFFLE: True
+  EXPORT: False
+
+
+

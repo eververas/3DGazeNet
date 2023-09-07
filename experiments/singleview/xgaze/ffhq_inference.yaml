@@ -1,0 +1,25 @@
+MODEL_DIR: 'vertex/XGAZE/test_1'
+OUTPUT_DIR: 'output'
+LOG_DIR: 'log'
+RESULTS_DIR: 'results'
+WORKERS: 16
+MODE: 'vertex'
+
+DATASET:
+  TEST_DATASETS: [ 'ffhq' ]
+  BATCH_SIZE: 128
+
+MODEL:
+  PREDICT_FACE: False
+  NUM_POINTS_OUT_FACE: 68
+  NUM_POINTS_OUT_EYES: 962
+  IMAGE_SIZE: [ 128, 128 ]
+  BACKBONE_TYPE: 'resnet'
+  BACKBONE_PRETRAINED: 'data/models/imagenet/resnet18-5c106cde.pth'
+  NUM_LAYERS: 18
+
+TEST:
+  SHUFFLE: False
+
+
+

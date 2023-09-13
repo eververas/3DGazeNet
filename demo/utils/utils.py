@@ -143,8 +143,10 @@ def affine_transform_array(verts, P):
 
 
 def draw_gaze(img_cv, diag, gaze_dict):
-    thickness = int(8 * diag / img_cv.shape[0])
-    vector_norm = int(70 * diag / img_cv.shape[0])
+    # thickness = max(int(8 * diag / img_cv.shape[0]), 1)
+    # vector_norm = max(int(100 * diag / img_cv.shape[0]), 1)
+    thickness = 8
+    vector_norm = 250
 
     cnt = gaze_dict['centers']['face']
     gaze = gaze_dict['gaze_combined'] if gaze_dict['gaze_combined'] is not None else gaze_dict['gaze']
@@ -159,9 +161,13 @@ def draw_gaze(img_cv, diag, gaze_dict):
     return img_cv
 
 def draw_eyes(img_cv, diag, gaze_dict, face_elem='face'):
-    thickness_eyes = int(3 * diag / img_cv.shape[0])
-    thickness_gaze = int(5 * diag / img_cv.shape[0])
-    vector_norm = int(70 * diag / img_cv.shape[0])
+    # thickness_eyes = max(int(4 * diag / img_cv.shape[0]), 1)
+    # thickness_gaze = max(int(6 * diag / img_cv.shape[0]), 1)
+    # vector_norm = max(int(100 * diag / img_cv.shape[0]), 1)
+    thickness_eyes = 1
+    thickness_gaze = 2
+    vector_norm = 70
+
     iris_idxs = gaze_dict['iris_idxs']
 
     # draw eyeballs
@@ -169,24 +175,24 @@ def draw_eyes(img_cv, diag, gaze_dict, face_elem='face'):
         cnt = eye[:32].mean(axis=0)
         radius = int(np.linalg.norm(cnt - eye[0]))
         img_cv = cv2.circle(
-            img_cv, tuple(cnt[:2].astype(np.int32).tolist()), radius, [155, 0, 0], thickness_eyes)
+            img_cv, tuple(cnt[:2].astype(np.int32).tolist()), radius, [178, 255, 102], thickness_eyes)
     # draw irises
     for side, eye in gaze_dict['verts_eyes'].items():
         iris8 = eye[iris_idxs][:, :2]
         for i_idx in range(iris8.shape[0]):
             pt1 = tuple(iris8[i_idx].astype(np.int32).tolist())
             pt2 = tuple(iris8[(i_idx + 1) % 8].astype(np.int32).tolist())
-            img_cv = cv2.line(img_cv, pt1, pt2, [155, 0, 0], thickness_eyes)
-    # draw gaze vectors
-    for side, eye in gaze_dict['verts_eyes'].items():
-        # gaze vector eye in image space
-        # g_vector = - gaze_dict['gaze_from_eyes'][side] * vector_norm
-        g_vector = - gaze_dict['gaze_combined'] * vector_norm
-        g_point = eye[iris_idxs].mean(axis=0) + g_vector
-        # draw gaze vectors
-        pt1 = eye[iris_idxs].mean(axis=0)[:2].astype(np.int32)
-        pt2 = g_point[:2].astype(np.int32)
-        cv2.arrowedLine(img_cv, pt1, pt2, [0, 0, 255], thickness_gaze, tipLength=0.2)
+            img_cv = cv2.line(img_cv, pt1, pt2, [178, 255, 102], thickness_eyes)
+    # # draw gaze vectors
+    # for side, eye in gaze_dict['verts_eyes'].items():
+    #     # gaze vector eye in image space
+    #     # g_vector = - gaze_dict['gaze_from_eyes'][side] * vector_norm
+    #     g_vector = - gaze_dict['gaze_combined'] * vector_norm
+    #     g_point = eye[iris_idxs].mean(axis=0) + g_vector
+    #     # draw gaze vectors
+    #     pt1 = eye[iris_idxs].mean(axis=0)[:2].astype(np.int32)
+    #     pt2 = g_point[:2].astype(np.int32)
+    #     cv2.arrowedLine(img_cv, pt1, pt2, [0, 0, 255], thickness_gaze, tipLength=0.2)
 
     return img_cv
 

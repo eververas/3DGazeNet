@@ -21,7 +21,7 @@ import numpy as np
 
 
 @Timer(name='Forward', fps=True, pprint=False)
-def infer_once(img, detector, predictor, draw):
+def infer_once(img, detector, predictor, draw, prev_gaze=None):
     out_img = None
     out_gaze = None
     detector_scale = detector.dispatch_gpu(img)
@@ -34,6 +34,17 @@ def infer_once(img, detector, predictor, draw):
         lms5 = lms5[idxs_sorted[-1]]
         bboxes = bboxes[idxs_sorted[-1]]
         out_gaze = predictor(img, lms5)
+        if prev_gaze is not None:
+            # smooth gaze
+            out_gaze['gaze_combined'] += prev_gaze['gaze_combined']
+            out_gaze['gaze_combined'] /= np.linalg.norm(out_gaze['gaze_combined'])
+            # smooth eyes
+            scale_l = np.linalg.norm(out_gaze['verts_eyes']['left']) / np.linalg.norm(prev_gaze['verts_eyes']['left'])
+            scale_r = np.linalg.norm(out_gaze['verts_eyes']['right']) / np.linalg.norm(prev_gaze['verts_eyes']['right'])
+            out_gaze['verts_eyes']['left'] *= (1 + (scale_l - 1) / 2) / scale_l
+            out_gaze['verts_eyes']['right'] *= (1 + (scale_r - 1) / 2) / scale_r
+            out_gaze['verts_eyes']['left'][:, :2] += - out_gaze['verts_eyes']['left'][out_gaze['iris_idxs']][:, :2].mean(axis=0) + out_gaze['centers_iris']['left']
+            out_gaze['verts_eyes']['right'][:, :2] += - out_gaze['verts_eyes']['right'][out_gaze['iris_idxs']][:, :2].mean(axis=0) + out_gaze['centers_iris']['right']
         if draw and out_gaze is not None:
             out_img = draw_results(img, bboxes, out_gaze)
     return out_img, out_gaze
@@ -45,12 +56,15 @@ def inference(cfg, video_path, draw):
 
     loader = VideoLoader(video_path, cfg.DETECTOR.IMAGE_SIZE, use_letterbox=False)
     save_dir = video_path[:video_path.rfind('.')] + f'_out_{cfg.PREDICTOR.BACKBONE_TYPE}_x{cfg.PREDICTOR.IMAGE_SIZE[0]}'
+    # saver = VideoSaver(output_dir=save_dir, vid_size=(640, 360), fps=loader.fps, save_images=True)
     saver = VideoSaver(output_dir=save_dir, vid_size=(640, 360), fps=loader.fps, save_images=True)
     tq = tqdm.tqdm(loader, file=logger)  # tqdm slows down the inference speed a bit
+    prev_gaze = None
     for frame_idx, input in tq:
         if input is None:
             break
-        out_img, out_gaze = infer_once(input, detector, predictor, draw)
+        out_img, out_gaze = infer_once(input, detector, predictor, draw, prev_gaze)
+        prev_gaze = out_gaze
         if out_img is not None:
             description = '{fwd} {ft:.2f} | {det} {det_res:.2f} | {nms} {asgn:.2f} | {ep} {pred:.2f}'.format(
                 fwd='Inference avg fps:',

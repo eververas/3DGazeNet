@@ -6,9 +6,9 @@ DETECTOR:
   IMAGE_SIZE: 640
 
 PREDICTOR:
-  MODE: 'gaze'
+  MODE: 'vertex'
   BACKBONE_TYPE: 'resnet'
-  PRETRAINED: 'data/res18_x128_gaze_g360.pth'
+  PRETRAINED: 'data/res18_x128_vert_all.pth'
   NUM_LAYERS: 18
   NUM_POINTS_OUT_EYES: 962
   IMAGE_SIZE: [ 128, 128 ]

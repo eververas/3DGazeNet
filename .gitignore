@@ -6,5 +6,6 @@ results/
 # demo
 demo/data/
 demo/log/
+demo/deliver/
 
 *__pycache__

@@ -7,5 +7,6 @@ results/
 demo/data/
 demo/log/
 demo/deliver/
+demo/test_dir
 
 *__pycache__

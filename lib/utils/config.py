@@ -18,6 +18,9 @@ def parse_args():
     parser.add_argument('--checkpoint', help='Path to a checkpoint to initialize from.', default=None, type=str)
     parser.add_argument('--skip_optimizer', help='Skip optimizer restoration from checkpoint.', action='store_true')
     parser.add_argument('--epoch', help='Force set epoch to this number.', default=None, type=int)
+    # inference
+    parser.add_argument('--inference_data_file', help='Path to the inference dataset preprocessing file.', default=None, type=str)
+    parser.add_argument('--inference_dataset_dir', help='The directory of the inference dataset images.', default=None, type=str)
 
     args = parser.parse_args()
     return args
@@ -38,6 +41,11 @@ def update_config(config_file):
     with open(config_file) as f:
         this_config = edict(yaml.load(f, Loader=yaml.FullLoader))
     update_dict(config, this_config)
+
+def update_dataset_info(args):
+    from .defaults import DATASET_INFO
+    DATASET_INFO['InferenceDataset']['data_file_test'] = args.inference_data_file
+    DATASET_INFO['InferenceDataset']['img_prefix_test'] = args.inference_dataset_dir
 
 
 def get_model_name(cfg):

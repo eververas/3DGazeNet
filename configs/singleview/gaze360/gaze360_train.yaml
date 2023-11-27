@@ -1,4 +1,4 @@
-MODEL_DIR: 'vertex/G360/test_0'
+MODEL_DIR: 'models/vertex/G360/test_0'
 OUTPUT_DIR: 'output'
 LOG_DIR: 'log'
 RESULTS_DIR: 'results'

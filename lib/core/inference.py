@@ -22,7 +22,8 @@ def inference(config, test_loader, model, device):
 
     for i, (input_data, meta) in tqdm.tqdm(enumerate(test_loader), total=len(test_loader)):
         # compute output
-        output = model(input_data.to(device))
+        with torch.no_grad():
+            output = model(input_data.to(device))
         # gather data to export
         batch_size = input_data.shape[0]
         input_size = config.MODEL.IMAGE_SIZE[0]

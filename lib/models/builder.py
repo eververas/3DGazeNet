@@ -1,7 +1,6 @@
 import warnings
 
-from lib.utils.defaults import (MODEL_NAMES, LOSS_NAMES)
-from .backbones import MobileNetV3
+from lib.utils.defaults import MODEL_NAMES
 from torch.optim import SGD, Adam, AdamW
 from lib import HOOKS
 from lib.utils.scheduler import IterBasedScheduler, ExponentialIterScheduler, MultiStepIterScheduler
@@ -13,10 +12,6 @@ def build_model(cfg):
     model_name = cfg.MODEL.NAME if cfg.MODEL.NAME else f'{mode.lower()}_predictor'
     assert model_name in MODEL_NAMES, "Polydefkis - Model name not in the supported Models "
     return HOOKS.build(dict(type=model_name, cfg=cfg))
-
-
-def get_model_mobilenetv3(_):
-    return MobileNetV3()
 
 
 def build_loss(cfg):

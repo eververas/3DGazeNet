@@ -48,6 +48,14 @@ DATASET_INFO = {
         'img_prefix_train': datasets_base_dir + 'gaze360/images',
         'img_prefix_test': datasets_base_dir + 'gaze360/images',
     },
+    'InferenceDataset': {
+        'dataset_name': 'Inference',
+        'bbox_eyes_center_func': 'get_pred_center',
+        'data_file_train': '',
+        'data_file_test': '_',
+        'img_prefix_train': '',
+        'img_prefix_test': '',
+    },
 }
 
 DATASETS_WITH_SAME_TRAIN_TEST_FILES = [val['dataset_name'].lower() for val in DATASET_INFO.values()

@@ -6,7 +6,7 @@ import torch
 import torch.backends.cudnn as cudnn
 
 from lib.utils import load_from_checkpoint, get_final_output_dir, \
-                    parse_args, update_config, update_dict, config
+                    parse_args, update_config, update_dict, update_dataset_info, config
 from lib.core import inference
 from lib.dataset import build_dataset
 from lib.models import build_model
@@ -17,6 +17,7 @@ def main():
     args = parse_args()
     update_config(args.cfg)
     update_dict(config, vars(args))
+    update_dataset_info(args)
 
     # device
     device = torch.device(f'cuda:{config.GPUS[0]}' if torch.cuda.is_available() else 'cpu')

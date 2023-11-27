@@ -39,3 +39,7 @@ class XGazeDataset(GenericDataset):
                                'subject0063', 'subject0088', 'subject0062', 'subject0039']
         super(XGazeDataset, self).__init__(*args, **kwargs)
 
+@HOOKS.register_module('inference')
+class InferenceDataset(GenericDataset):
+    def __init__(self, *args, **kwargs):
+        super(InferenceDataset, self).__init__(*args, **kwargs)

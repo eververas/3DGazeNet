@@ -1,7 +1,7 @@
 MODEL_DIR: 'vertex/ALL/test_0'
 OUTPUT_DIR: 'output'
 LOG_DIR: 'log'
-RESULTS_DIR: 'results'
+RESULTS_DIR: 'inference_results'
 WORKERS: 16
 MODE: 'vertex'
 

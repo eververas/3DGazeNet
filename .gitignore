@@ -1,7 +1,7 @@
 data/
 log/
 output/
-results/
+inference_results/
 
 # demo
 demo/data/

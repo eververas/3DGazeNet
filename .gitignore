@@ -2,6 +2,7 @@ data/
 log/
 output/
 inference_results/
+notebooks/.ipynb_checkpoints
 
 # demo
 demo/data/

@@ -28,7 +28,7 @@ $ python preprocess_inference.py --image_base_dir ../data/example_images \
                                  --gpu_id 0 --n_procs 5
 ```
 
-2\. Run inference on the set of images. This step outputs gaze estimation and 3D eye reconstruction results in a `.pkl` file in the `inference_results` directory. with the following command:
+2\. Run inference on the set of images. This step outputs gaze estimation and 3D eye reconstruction results in a `.pkl` file in the `inference_results` directory. For inference run the following command:
 
 ```
 $ python inference.py --cfg configs/inference/inference.yaml \
@@ -39,5 +39,7 @@ $ python inference.py --cfg configs/inference/inference.yaml \
 ```
 
 3\. To inspect the gaze tracking results run the jupyter notebook in `notebooks/view-inference_results.ipynb`
+
+Bash scripts for the above commands can be found in the `scripts` directory.
 
 

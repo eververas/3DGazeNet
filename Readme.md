@@ -1,10 +1,43 @@
 # 3DGazeNet: Generalizing Gaze Estimation with Weak-Supervision from Synthetic Views ([arxiv](https://arxiv.org/abs/2212.02997))
 
-
-## Abstract
-
-Developing gaze estimation models that generalize well to unseen domains and in-the-wild conditions remains a challenge with no known best solution. This is mostly due to the difficulty of acquiring ground truth data that cover the distribution of possible faces, head poses, and environmental conditions that exist in the real world. In this work, we propose to train general gaze estimation models based on 3D geometry-aware gaze pseudo-annotations which we extract from arbitrary unlabelled face images, which are abundantly available on the internet. Additionally, we leverage the observation that head, body, and hand pose estimation benefit from revising them as dense 3D coordinate prediction, and similarly express gaze estimation as regression of dense 3D eye meshes. We overcome the absence of compatible ground truth by fitting rigid 3D eyeballs on existing gaze datasets and designing a multi-view supervision framework to balance the effect of pseudo-labels during training. We test our method in the task of gaze generalization, in which we demonstrate improvement of up to $30\%$ compared to state-of-the-art when no ground truth data are available, and up to $10\%$ when they are.
-
-
 https://github.com/Vagver/dense3Deyes/assets/25174551/4de4fb76-9577-4209-ba07-779356230131
+
+## Installation
+
+To create a conda environment with the required dependences run the command: 
+
+```
+$ conda env create --file env_requirements.yaml
+$ conda activate 3DGazeNet
+```
+
+## Download models
+
+Download the data directory contatining pre-trained gaze estimation models from [here](sdsdsd). Extract and place the data folder in the root directory of this repo.
+
+## Inference
+
+To run inference on a set of images follow the steps below. To quickly test inference a set of example images are given in the `data/example_images` directory.
+
+1\. Pre-process the set of images. This step performs face detection and exports a '.pkl' file containing pre-processing data. For data pre-processing run the following command:
+
+```
+$ cd tools
+$ python preprocess_inference.py --image_base_dir ../data/example_images \
+                                 --output_dir ../output/preprocessing \
+                                 --gpu_id 0 --n_procs 5
+```
+
+2\. Run inference on the set of images. This step outputs gaze estimation and 3D eye reconstruction results in a '.pkl' file in the 'inference_results' directory. with the following command:
+
+```
+$ python inference.py --cfg configs/inference/inference.yaml \
+                      --inference_data_file 'output/preprocessing/data_face68.pkl' \
+                      --inference_dataset_dir 'data/example_images/' \
+                      --checkpoint output/models/singleview/vertex/ALL/test_0/checkpoint.pth \
+                      --skip_optimizer
+```
+
+3\. To inspect the gaze tracking results run the jupyter notebook in `notebooks/view-inference_results.ipynb`
+
 

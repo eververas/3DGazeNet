@@ -17,9 +17,9 @@ Download the data directory contatining pre-trained gaze estimation models from 
 
 ## Inference
 
-To run inference on a set of images follow the steps below. To quickly test inference a set of example images are given in the `data/example_images` directory.
+To run inference on a set of images follow the steps below. A set of example images are given in the `data/example_images` directory.
 
-1\. Pre-process the set of images. This step performs face detection and exports a '.pkl' file containing pre-processing data. For data pre-processing run the following command:
+1\. Pre-process the set of images. This step performs face detection and exports a `.pkl` file in the path defined by `--output_dir`, containing pre-processing data. For data pre-processing run the following command:
 
 ```
 $ cd tools
@@ -28,7 +28,7 @@ $ python preprocess_inference.py --image_base_dir ../data/example_images \
                                  --gpu_id 0 --n_procs 5
 ```
 
-2\. Run inference on the set of images. This step outputs gaze estimation and 3D eye reconstruction results in a '.pkl' file in the 'inference_results' directory. with the following command:
+2\. Run inference on the set of images. This step outputs gaze estimation and 3D eye reconstruction results in a `.pkl` file in the `inference_results` directory. with the following command:
 
 ```
 $ python inference.py --cfg configs/inference/inference.yaml \

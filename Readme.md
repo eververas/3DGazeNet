@@ -1,4 +1,6 @@
-# 3DGazeNet: Generalizing Gaze Estimation with Weak-Supervision from Synthetic Views ([arxiv](https://arxiv.org/abs/2212.02997))
+# 3DGazeNet
+
+Official implementation of the paper ***3DGazeNet: Generalizing Gaze Estimation with Weak-Supervision from Synthetic Views ([arxiv](https://arxiv.org/abs/2212.02997))***
 
 https://github.com/Vagver/dense3Deyes/assets/25174551/4de4fb76-9577-4209-ba07-779356230131
 
@@ -23,18 +25,18 @@ To run inference on a set of images follow the steps below. A set of example ima
 
 ```
 $ cd tools
-$ python preprocess_inference.py --image_base_dir ../data/example_images \
-                                 --output_dir ../output/preprocessing \
+$ python preprocess_inference.py --image_base_dir ../data/example_images 
+                                 --output_dir ../output/preprocessing
                                  --gpu_id 0 --n_procs 5
 ```
 
 2\. Run inference on the set of images. This step outputs gaze estimation and 3D eye reconstruction results in a `.pkl` file in the `inference_results` directory. For inference run the following command:
 
 ```
-$ python inference.py --cfg configs/inference/inference.yaml \
-                      --inference_data_file 'output/preprocessing/data_face68.pkl' \
-                      --inference_dataset_dir 'data/example_images/' \
-                      --checkpoint output/models/singleview/vertex/ALL/test_0/checkpoint.pth \
+$ python inference.py --cfg configs/inference/inference.yaml
+                      --inference_data_file 'output/preprocessing/data_face68.pkl'
+                      --inference_dataset_dir 'data/example_images/'
+                      --checkpoint output/models/singleview/vertex/ALL/test_0/checkpoint.pth
                       --skip_optimizer
 ```
 

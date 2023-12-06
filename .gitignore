@@ -12,3 +12,4 @@ demo/deliver/
 demo/test_dir
 
 *__pycache__
+*.ipynb_checkpoints

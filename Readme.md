@@ -36,7 +36,7 @@ $ python preprocess_inference.py --image_base_dir ../data/example_images
 $ python inference.py --cfg configs/inference/inference.yaml
                       --inference_data_file 'output/preprocessing/data_face68.pkl'
                       --inference_dataset_dir 'data/example_images/'
-                      --checkpoint output/models/singleview/vertex/ALL/test_0/checkpoint.pth
+                      --checkpoint data/3dgazenet/models/singleview/vertex/ALL/test_0/checkpoint.pth
                       --skip_optimizer
 ```
 

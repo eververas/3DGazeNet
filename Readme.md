@@ -15,7 +15,7 @@ $ conda activate 3DGazeNet
 
 ## Download models
 
-Download the data directory contatining pre-trained gaze estimation models from [here](sdsdsd). Extract and place the data folder in the root directory of this repo.
+Download the data directory contatining pre-trained gaze estimation models from [here](https://drive.google.com/file/d/1mYvKRJGS8LY5IU3I8Qfvm-xINQyby1z5/view?usp=sharing). Extract and place the data folder in the root directory of this repo.
 
 ## Inference
 

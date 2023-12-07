@@ -19,7 +19,7 @@ def get_path(i):
 
 # Read dataset meta
 # path_base = Path('/storage/nfs2/evangelosv/databases/EyeReconstruction/gaze360/')
-path_base = Path('../datasets/XGaze/xgaze_448/')
+path_base = Path('../datasets/Gaze360')
 path_imgs = path_base / 'images'
 meta = loadmat(str(path_base / 'metadata.mat'))
 

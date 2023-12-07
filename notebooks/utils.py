@@ -4,21 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
-# indexes for lms from 3d faces (53K)
-lms_idxs = [21868, 22404, 22298, 22327, 43430, 45175, 46312, 47132, 47911, 48692,
-            49737, 51376, 53136, 32516, 32616, 32205, 32701, 38910, 39396, 39693,
-            39934, 40131, 40843, 41006, 41179, 41430, 13399, 8161,  8172,  8179,
-            8185,  5622,  6881,  8202,  9403,  10764, 1831,  3887,  5049,  6214,
-            4805,  3643,  9955,  11095, 12255, 14197, 12397, 11366, 5779,  6024,
-            7014,  8215,  9294,  10267, 10922, 9556,  8836,  8236,  7636,  6794,
-            5905,  7264,  8223,  9063,  10404, 8828,  8228,  7509]
-lms5_idxs = [lms_idxs[i] for i in [36, 45, 30, 48, 54]]
-
 # head pose in the same axes as gaze
 # works with results in the same space as insightface
 with open('../data/mean_face.pkl', 'rb') as f:
-    mean_f = pickle.load(f)[lms_idxs]
+    mean_f = pickle.load(f)
 mean_f = mean_f[:, [1, 0, 2]] * [-1., 1., -1.]
 def headpose_from_lms68(lms68_3D):
     P = trf3d.estimate_affine_matrix_3d23d(mean_f, lms68_3D.astype(np.float32))
@@ -68,6 +57,20 @@ def rot2view_axes(points):
 
 # --------------------------------------------------------------------
 
+def estimate_affine_matrix_3d23d(X, Y):
+    ''' Using least-squares solution 
+    Args:
+        X: [n, 3]. 3d points(fixed)
+        Y: [n, 3]. corresponding 3d points(moving). Y = PX
+    Returns:
+        P_Affine: (3, 4). Affine camera matrix (the third row is [0, 0, 0, 1]).
+    '''
+    X_homo = np.hstack((X, np.ones([X.shape[0],1]))) #n x 4
+    P = np.linalg.lstsq(X_homo, Y, rcond=None)[0].T # Affine matrix. 3 x 4
+    return P
+
+# --------------------------------------------------------------------
+
 idxs_ring0 = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
 idxs_ring1 = [240, 112, 80, 48, 16, 304, 336, 368, 442, 480, 426, 352, 320, 288, 0, 32, 64, 96, 224]
 idxs_ring2 = [248, 120, 88, 56, 24, 312, 344, 376, 433, 480, 421, 360, 328, 296, 8, 40, 72, 104, 232]
@@ -81,6 +84,15 @@ def draw_eyes(image, lms68_3D, eyes, colour=[178, 255, 102]):
         eyes: dictionary including left and right eyes as np arrays
         colour: colour to use for drawing the eyes
     '''
+    # if image small -> upscale
+    if max(image.shape) < 300:
+        h, w, _ = image.shape
+        trg = 500
+        scl = trg / h
+        dim = (int(trg), int(w * scl))
+        image = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+        lms68_3D = lms68_3D.copy() * scl
+        eyes = {'left': eyes['left'] * scl, 'right': eyes['right'] * scl}
 
     colour_iris = colour
     colour_eyeball = colour
@@ -142,6 +154,15 @@ def draw_gaze_from_vector(image, lms68_3D, vector, colour=[255, 0, 0]):
         vector: gaze vector
         colour: colour of the gaze vector
     '''
+    # if image small -> upscale
+    if max(image.shape) < 300:
+        h, w, _ = image.shape
+        trg = 500
+        scl = trg / h
+        dim = (int(trg), int(w * scl))
+        image = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+        lms68_3D = lms68_3D.copy() * scl
+        
     # face diag
     lms5 = lms68_3D[[36, 45, 30, 48, 54]][:, [0, 1]]
     lms5[0] = lms68_3D[36:42].mean(axis=0)[[0, 1]]

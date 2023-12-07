@@ -9,7 +9,6 @@ import multiprocessing as mp
 from pathlib import Path
 from scipy.spatial.transform import Rotation as Rot
 
-import transform_3d as trf3d
 from utils import *
 
 
@@ -195,7 +194,7 @@ dummy = [annotations_train.update(res) for res in tqdm.tqdm(results) if res is n
 print(f"Annotations dict for train set, size: {len(annotations_train)}")
 
 
-# Fit 3d eyes -----------------------------------------------------------------------------
+# Fit 3D eyes -----------------------------------------------------------------------------
 
 def fit_eyes(path):
     try:
@@ -252,8 +251,8 @@ def fit_eyes(path):
             return {}, path, False
 
         # get affine transforms -----------------------------------------------------------------------
-        Pl = trf3d.estimate_affine_matrix_3d23d(eyel_template, left_out)
-        Pr = trf3d.estimate_affine_matrix_3d23d(eyer_template, right_out)
+        Pl = estimate_affine_matrix_3d23d(eyel_template, left_out)
+        Pr = estimate_affine_matrix_3d23d(eyer_template, right_out)
 
         # get head_pose
         head_pose = annotations_train[path]['face_head_pose']
@@ -305,7 +304,6 @@ def pack_data(path):
             'xy5': lms5.astype(np.float16),
             'xyz68': lms68_3D.astype(np.float16),
             'head_pose': head_pose.astype(np.float16)}
-        # item
         item = {
             'name': name,
             'eyes': eyes,

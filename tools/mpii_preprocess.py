@@ -1,52 +1,67 @@
 import os
 import cv2
 import tqdm
+import h5py
 import pickle
 import numpy as np
 import multiprocessing as mp
+import matplotlib.pyplot as plt
 from pathlib import Path
-from scipy.io import loadmat
 from scipy.spatial.transform import Rotation as Rot
 
 from utils import *
 
-def get_path(i):
-    rec = meta['recordings'][0][meta['recording'][0][i]][0]
-    sbj = str(meta['person_identity'][0][i]).zfill(6)
-    frame_id = str(meta['frame'][0][i]).zfill(6)
-    path = f"{rec}/head/{sbj}/{frame_id}.jpg"
-    return path
+# path_base = Path('/storage/nfs2/evangelosv/databases/EyeReconstruction/MPIIFaceGaze/')
+path_base = Path('datasets/MPIIFaceGaze')
+path_db = path_base / 'dataset'
+path_imgs = path_base / 'images_2'
+paths_mat = [p for p in path_db.rglob('*.mat')]
 
-# Read dataset meta
-# path_base = Path('/storage/nfs2/evangelosv/databases/EyeReconstruction/gaze360/')
-path_base = Path('../datasets/Gaze360')
-path_imgs = path_base / 'images'
-meta = loadmat(str(path_base / 'metadata.mat'))
+# Export images from .mat files ----------------------------------------------------------------
+print('Exporting images from .mat files...')
 
-n_paths = meta['recording'][0].shape[0]
-paths_db = [get_path(i) for i in np.arange(n_paths)]
-print(f"Total number of samples in dataset: {len(paths_db)}")
+# create folders
+for path in paths_mat:
+    if not (path_imgs / path.stem).exists():
+        os.makedirs(str(path_imgs / path.stem))
 
-# Read paths with filtered headpose
-paths_train = np.loadtxt(str(path_base / 'paths_train_hp90.txt'), np.str_).tolist()
-paths_test = np.loadtxt(str(path_base / 'paths_test_hp90.txt'), np.str_).tolist()
-paths = paths_train + paths_test
-print(f"Total number of samples with headpose <= 90 degrees: train: {len(paths_train)}, test: {len(paths_test)}, all: {len(paths)}")
+# export images
+def export_images(path_mat):
+    try:
+        with h5py.File(str(path_mat), 'r') as mat:
+            n_samples = mat['Data']['data'].shape[0]
+            for i in range(n_samples):
+                try:
+                    image = np.transpose(mat['Data']['data'][i], axes=[1, 2, 0])
+                    cv2.imwrite(str(path_imgs / path_mat.stem / (str(i) + '.jpg')), image)
+                except:
+                    print('error exporting image')
+                    pass
+    except:
+        return path_mat, False
+    return path_mat, True
+
+paths_iter = paths_mat
+num_cpu = 50
+pool = mp.Pool(num_cpu)
+results = list(tqdm.tqdm(pool.imap_unordered(export_images, paths_iter), total=len(paths_iter)))
+pool.close()
+
+# count images
+paths = []
+for path_mat in paths_mat:
+    paths += [str(p.relative_to(path_imgs)) for p in (path_imgs / path_mat.stem).glob('*.jpg')]
+print(f"Successfully exported: {len(paths)}/{len(paths_mat)*3000}")
+
 
 # Lms and Headpose ------------------------------------------------------------------------------
 print('Loading face and iris lms...')
 # face lms
-with open(str(path_base / 'lms68_3D_wbb.pkl'), 'rb') as f:
-    lms68_wbb = pickle.load(f)
-with open(str(path_base / 'lms68_3D_wobb.pkl'), 'rb') as f:
-    lms68_wobb = pickle.load(f)
-lms68_all = lms68_wbb.copy()
-lms68_all.update(lms68_wobb)
-print(f"face lms of images with given bboxes: {len(lms68_wbb)}, without given bboxes: {len(lms68_wobb)}, all: {len(lms68_all)}")
+with open(str(path_base / 'lms68_3D_all.pkl'), 'rb') as f:
+    lms68_all = pickle.load(f)
 # iris lms
 with open(str(path_base / 'lms8_all.pkl'), 'rb') as f:
     lms8_all = pickle.load(f)
-
 # head pose from lms68
 print('Calculating headpose from 3D face landmarks...')
 def get_headpose(path):
@@ -67,27 +82,36 @@ pool.close()
 headpose_all = {}
 dummy = [headpose_all.update(res[0]) for res in results]
 
+
 # Annotations dictionary ------------------------------------------------------------------------
 print('Reading annotations...')
-def get_annotations(idx):
-    path = get_path(idx)
-    vector = meta['gaze_dir'][idx] * (1, 1, -1)
-    pitchyaws = vector_to_pitchyaw(vector[None, :])[0]
+def load_annotations(path_mat):
     try:
-        face_head_pose = headpose_all[path]
+        with h5py.File(str(path_mat), 'r') as mat:
+            n_samples = mat['Data']['data'].shape[0]
+            annotations = {}
+            for i in range(n_samples):
+                gaze_pitchyaw = mat['Data']['label'][i][0:2]
+                gaze_vector = pitchyaw_to_vector(gaze_pitchyaw[None, :])[0]
+                headpose = mat['Data']['label'][i][2:4].astype(np.float16)
+                lms6 = mat['Data']['label'][i][4:].reshape((6, 2)).astype(np.float16)
+                annotations[str(Path(path_mat.stem) / (str(i) + '.jpg'))] = {
+                    'gaze': {
+                        'pitchyaws': gaze_pitchyaw, 'vector': gaze_vector},
+                    'face_head_pose': headpose,
+                    'lms6': lms6
+                }
     except:
-        face_head_pose = np.zeros(3)
-    annotation = {}
-    annotation[path] = {
-        'gaze': {'pitchyaws': pitchyaws, 'vector': vector},
-        'face_head_pose': face_head_pose}
-    return annotation
-    
-paths_iter = np.arange(len(paths_db))
+        return {}, path_mat, False
+            
+    return annotations, path_mat, True
+
+paths_iter = paths_mat
 num_cpu = 50
 pool = mp.Pool(num_cpu)
-results = list(tqdm.tqdm(pool.imap_unordered(get_annotations, paths_iter), total=len(paths_iter)))
+results = list(tqdm.tqdm(pool.imap_unordered(load_annotations, paths_iter), total=len(paths_iter)))
 pool.close()
+results = [res[0] for res in results]
 
 annotations = {}
 dummy = [annotations.update(res) for res in results]
@@ -139,41 +163,30 @@ def fit_eyes(path):
         # translate
         right_xyz_rot_alg[:, [0, 1]] += lms8_right_cnt
         right_out = right_xyz_rot_alg.astype(np.float32)
-    
-        # scale to edge length ------------------------------------------------------------------------
-        # lms5
-        lms68_3D = lms68_all[path][:, [0, 1, 2]]
-        lms5 = lms68_3D[[36, 45, 30, 48, 54]][:, [0, 1]]
-        lms5[0] = lms68_3D[36:42].mean(axis=0)[[0, 1]]
-        lms5[1] = lms68_3D[42:48].mean(axis=0)[[0, 1]]
-        diag1 = np.linalg.norm(lms5[0] - lms5[4])
-        diag2 = np.linalg.norm(lms5[1] - lms5[3])
-        diag = np.max([diag1, diag2])
-        # left
+        
+        
+        # scale to edge length ----------------------------------------------------------------------
         diffs = left_out[tri481][:, :] - left_out[tri481][:, [1, 2, 0]]
-        diff_l = np.linalg.norm(diffs, axis=2).mean() / diag
-        scl_l = 1.
-        if diff_l >= 0.03:
-            scl_l = 0.03 / diff_l
-        if diff_l <= 0.02:
-            scl_l = 0.02 / diff_l
-        cnt_l = left_out[iris_idx_481].mean(axis=0)
-        left_out -= left_out[:32].mean(axis=0)
-        left_out *= scl_l
-        left_out += - left_out[iris_idx_481].mean(axis=0) + cnt_l
-        # right
+        diff_l = np.linalg.norm(diffs, axis=2).mean()
         diffs = right_out[tri481][:, :] - right_out[tri481][:, [1, 2, 0]]
-        diff_r = np.linalg.norm(diffs, axis=2).mean() / diag
-        scl_r = 1.
-        if diff_r >= 0.03:
-            scl_r = 0.03 / diff_r
-        if diff_r <= 0.02:
-            scl_r = 0.02 / diff_r
-        cnt_r = right_out[iris_idx_481].mean(axis=0)
-        right_out -= right_out[:32].mean(axis=0)
-        right_out *= scl_r
-        right_out += - right_out[iris_idx_481].mean(axis=0) + cnt_r
-    
+        diff_r = np.linalg.norm(diffs, axis=2).mean()
+        if diff_l >= 10. or diff_r >= 10: # filter out black images?
+            return {}, path, False
+        if diff_l < 4 or diff_r < 4: # filter out black images?
+            return {}, path, False
+        if diff_l >= 8.5:
+            scl_l = 8.5 / diff_l 
+            cnt_l = left_out[iris_idx_481].mean(axis=0)
+            left_out -= left_out[:32].mean(axis=0)
+            left_out *= scl_l
+            left_out += - left_out[iris_idx_481].mean(axis=0) + cnt_l
+        if diff_r >= 8.5:
+            scl_r = 8.5 / diff_r
+            cnt_r = right_out[iris_idx_481].mean(axis=0)
+            right_out -= right_out[:32].mean(axis=0)
+            right_out *= scl_r
+            right_out += - right_out[iris_idx_481].mean(axis=0) + cnt_r
+        
         # get affine transforms -----------------------------------------------------------------------
         Pl = estimate_affine_matrix_3d23d(eyel_template, left_out)
         Pr = estimate_affine_matrix_3d23d(eyer_template, right_out)
@@ -241,46 +254,20 @@ def pack_data(path):
         return {}, path, False
     return item, path, True
 
-# pack train set -------------------------
-paths_iter = paths_train
+paths_iter = paths
 num_cpu = 50
 pool = mp.Pool(num_cpu)
 results = list(tqdm.tqdm(pool.imap_unordered(pack_data, [path for path in paths_iter]), total=len(paths_iter)))
 pool.close()
 
 paths_true = [r[0] for r in results if r[-1]]
-paths_false = [r[0] for r in results if r[-1] == False]
-print(f"Train Set - Packed successfully: {len(paths_true)}/{len(paths_true) + len(paths_false)}")
-
-results_train = [r[0] for r in results if r[-1]]
-print(f"Number of samples packed: {len(results_train)}")
+print(f"Train Set - Packed successfully: {len(paths_true)}/{len(paths)}")
+results = [r[0] for r in results if r[-1]]
+print(f"Number of samples packed: {len(results)}")
 
 # export processed data
 path_export_data = path_base / 'data_for_model_2'
 os.makedirs(str(path_export_data), exist_ok=True)
-with open(str(path_export_data / 'train_gaze_eyes3D_face68.pkl'), 'wb') as f:
-    pickle.dump(results_train, f)
-print(f"Data exported in: {path_export_data / 'train_gaze_eyes3D_face68.pkl'}")
-
-# pack test set -------------------------
-paths_iter = paths_test
-num_cpu = 50
-pool = mp.Pool(num_cpu)
-results = list(tqdm.tqdm(pool.imap_unordered(pack_data, [path for path in paths_iter]), total=len(paths_iter)))
-pool.close()
-
-paths_true = [r[0] for r in results if r[-1]]
-paths_false = [r[0] for r in results if r[-1] == False]
-print(f"Test Set - Packed successfully: {len(paths_true)}/{len(paths_true) + len(paths_false)}")
-
-results_test = [r[0] for r in results if r[-1]]
-print(f"Number of samples packed: {len(results_test)}")
-
-# export processed data
-path_export_data = path_base / 'data_for_model_2'
-os.makedirs(str(path_export_data), exist_ok=True)
-with open(str(path_export_data / 'test_gaze_eyes3D_face68.pkl'), 'wb') as f:
-    pickle.dump(results_test, f)
-print(f"Data exported in: {path_export_data / 'test_gaze_eyes3D_face68.pkl'}")
-
-
+with open(str(path_export_data / 'all_gaze_eyes3D_face68.pkl'), 'wb') as f:
+    pickle.dump(results, f)
+print(f"Data exported in: {path_export_data / 'all_gaze_eyes3D_face68.pkl'}")

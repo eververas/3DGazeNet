@@ -59,6 +59,8 @@ n_data_per_sbj.update(n_data_per_sbj_test)
 
 path_base_export = path_base / 'exported_test'
 
+print('Exporting images from .h5py files...')
+
 def export_images(path):
     try:
         sub_id = path.stem
@@ -99,18 +101,18 @@ num_cpu = 50
 pool = mp.Pool(num_cpu)
 results = list(tqdm.tqdm(pool.imap_unordered(export_images, [path for path in paths_iter]), total=len(paths_iter)))
 pool.close()
-paths_true = [r[0] for r in results if r[-1] == True]
-paths_false = [r[0] for r in results if r[-1] == False]
-print(f"Train Set - Successfully exported: {len(paths_true)}/{len(paths_true) + len(paths_false)}")
+# paths_true = [r[0] for r in results if r[-1] == True]
+# paths_false = [r[0] for r in results if r[-1] == False]
+# print(f"Train Set - Successfully exported: {len(paths_true)}/{len(paths_true) + len(paths_false)}")
 # test set
 paths_iter = paths_h5_test
 num_cpu = 50
 pool = mp.Pool(num_cpu)
 results = list(tqdm.tqdm(pool.imap_unordered(export_images, [path for path in paths_iter]), total=len(paths_iter)))
 pool.close()
-paths_true = [r[0] for r in results if r[-1] == True]
-paths_false = [r[0] for r in results if r[-1] == False]
-print(f"Test Set - Successfully exported: {len(paths_true)}/{len(paths_true) + len(paths_false)}")
+# paths_true = [r[0] for r in results if r[-1] == True]
+# paths_false = [r[0] for r in results if r[-1] == False]
+# print(f"Test Set - Successfully exported: {len(paths_true)}/{len(paths_true) + len(paths_false)}")
 
 # count exported images ----------
 # train set
@@ -136,7 +138,9 @@ paths_test = sum([r[1] for r in result], [])
 paths_test = [str(p.relative_to(path_imgs)) for p in paths_test]
 print(f"Test Set - Successfully exported: {len(paths_test)}/{n_data_test}")
 
-print('Loading face and iris lms ...')
+
+# Lms and Headpose ------------------------------------------------------------------------------
+print('Loading face and iris lms...')
 
 # face lms
 mode = 'train'
@@ -156,7 +160,7 @@ with open(str(path_base_export / mode / 'lms8_all.pkl'), 'rb') as f:
 
 
 # Annotations dictionary --------------------------------------------------------------------
-
+print('Reading annotations...')
 def get_annotations(path_h5):
     try:
         fid = h5py.File(str(path_h5), 'r')
@@ -195,7 +199,7 @@ print(f"Annotations dict for train set, size: {len(annotations_train)}")
 
 
 # Fit 3D eyes -----------------------------------------------------------------------------
-
+print('Fitting 3D eyes...')
 def fit_eyes(path):
     try:
         pitchyaws = annotations_train[path]['gaze']['pitchyaws']
@@ -287,7 +291,7 @@ dummy = [eyes_all_P.update(res[0]) for res in tqdm.tqdm(results)]
 
 
 # Pack data in a format compatible with Gaze Model training -------------------------------------------
-
+print('Packing data...')
 def pack_data(path):    
     try:
         name = str(path)

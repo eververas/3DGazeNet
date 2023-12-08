@@ -10,7 +10,7 @@ with open('../data/mean_face.pkl', 'rb') as f:
     mean_f = pickle.load(f)
 mean_f = mean_f[:, [1, 0, 2]] * [-1., 1., -1.]
 def headpose_from_lms68(lms68_3D):
-    P = trf3d.estimate_affine_matrix_3d23d(mean_f, lms68_3D.astype(np.float32))
+    P = estimate_affine_matrix_3d23d(mean_f, lms68_3D.astype(np.float32))
     s, R, t = trf3d.P2sRt(P)
     angles = np.array(trf3d.matrix2angle(R))
     angles = angles[[1, 0, 2]] * (1, -1, 1) * (np.pi / 180)

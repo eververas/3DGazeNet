@@ -191,14 +191,12 @@ def get_static_center(*_):
 
 
 def get_lms_diag_from_face(face_sample):
-    if 'xyz68' in face_sample:
+    if face_sample['xyz68'] is not None:
         lms5 = face_sample['xyz68'][[36, 45, 30, 48, 54]][:, [1, 0]].astype(np.float32)
         lms5[0] = face_sample['xyz68'][36:42].mean(axis=0)[[1, 0]].astype(np.float32)
         lms5[1] = face_sample['xyz68'][42:48].mean(axis=0)[[1, 0]].astype(np.float32)
-    elif 'xy68' in face_sample:
-        lms5 = face_sample['xy68'][[36, 45, 30, 48, 54]][:, [1, 0]].astype(np.float32)
-        lms5[0] = face_sample['xy68'][36:42].mean(axis=0)[[1, 0]].astype(np.float32)
-        lms5[1] = face_sample['xy68'][42:48].mean(axis=0)[[1, 0]].astype(np.float32)
+    elif face_sample['xy5'] is not None:
+        lms5 = face_sample['xy5'][:, [1, 0]].astype(np.float32)
     else:
         raise KeyError("The face sample does not contain xyz68 landmarks")
     # ready lms5

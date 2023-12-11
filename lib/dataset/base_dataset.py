@@ -85,9 +85,16 @@ class BaseDataset(Dataset):
         return verts
 
     def _load_face_verts(self, data_sample):
-        verts = data_sample['face']['xyz68']
-        verts = verts[:, [1, 0, 2]].astype(np.float32)
-        verts[:, 2] -= verts[:, 2][-68:][self.idx_nosetip_in_lms68]
+        if data_sample['face']['xyz68'] is not None:
+            verts = data_sample['face']['xyz68']
+            verts = verts[:, [1, 0, 2]].astype(np.float32)
+            verts[:, 2] -= verts[:, 2][-68:][self.idx_nosetip_in_lms68]
+        elif data_sample['face']['xy5'] is not None:
+            verts = data_sample['face']['xy5']
+            verts = verts[:, [1, 0]].astype(np.float32)
+            verts = np.concatenate((verts, np.zeros((5, 1))), axis=1)
+        else: 
+            raise KeyError("The face sample does not contain xyz68 landmarks")
         return verts
 
     def _load_face_gaze(self, data_sample):

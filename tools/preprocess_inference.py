@@ -83,7 +83,7 @@ if __name__ == '__main__':
             'eyes': None,
             'face': {
                 'xy5': lms5.astype(np.float16),
-                'xyz68': lms68_3D.astype(np.float16),
+                'xyz68': None, #lms68_3D.astype(np.float16),
                 'head_pose': np.array([0, 0]).astype(np.float16)
             },
             'gaze': None,

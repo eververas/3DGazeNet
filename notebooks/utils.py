@@ -76,11 +76,11 @@ idxs_ring1 = [240, 112, 80, 48, 16, 304, 336, 368, 442, 480, 426, 352, 320, 288,
 idxs_ring2 = [248, 120, 88, 56, 24, 312, 344, 376, 433, 480, 421, 360, 328, 296, 8, 40, 72, 104, 232]
 idxs_ring_iris = [224, 226, 228, 230, 232, 234, 236, 238, 240, 242, 244, 246, 248, 250, 252, 254]
 
-def draw_eyes(image, lms68_3D, eyes, colour=[178, 255, 102]):
+def draw_eyes(image, lms, eyes, colour=[178, 255, 102]):
     '''
     Input args:
         image: cv2 image
-        lms68_3D: face lms68
+        lms: face lms68 or lms5
         eyes: dictionary including left and right eyes as np arrays
         colour: colour to use for drawing the eyes
     '''
@@ -89,9 +89,9 @@ def draw_eyes(image, lms68_3D, eyes, colour=[178, 255, 102]):
         h, w, _ = image.shape
         trg = 500
         scl = trg / h
-        dim = (int(trg), int(w * scl))
+        dim = (int(w * scl), int(trg))
         image = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
-        lms68_3D = lms68_3D.copy() * scl
+        lms = lms.copy() * scl
         eyes = {'left': eyes['left'] * scl, 'right': eyes['right'] * scl}
 
     colour_iris = colour
@@ -99,9 +99,11 @@ def draw_eyes(image, lms68_3D, eyes, colour=[178, 255, 102]):
     colour_rings = colour
 
     # face diag
-    lms5 = lms68_3D[[36, 45, 30, 48, 54]]
-    lms5[0] = lms68_3D[36:42].mean(axis=0)
-    lms5[1] = lms68_3D[42:48].mean(axis=0)
+    lms5 = lms.copy()
+    if lms5.shape[0] == 68:
+        lms5 = lms5[[36, 45, 30, 48, 54]]
+        lms5[0] = lms5[36:42].mean(axis=0)
+        lms5[1] = lms5[42:48].mean(axis=0)
     diag1 = np.linalg.norm(lms5[0] - lms5[4])
     diag2 = np.linalg.norm(lms5[1] - lms5[3])
     diag = np.max([diag1, diag2])
@@ -146,11 +148,11 @@ def draw_eyes(image, lms68_3D, eyes, colour=[178, 255, 102]):
     return image
 
 
-def draw_gaze_from_vector(image, lms68_3D, vector, colour=[255, 0, 0]):
+def draw_gaze_from_vector(image, lms, vector, colour=[255, 0, 0]):
     '''
     Input args:
         image: cv2 image
-        lms68_3D: face lms68
+        lms: face lms68 or lms5
         vector: gaze vector
         colour: colour of the gaze vector
     '''
@@ -159,14 +161,16 @@ def draw_gaze_from_vector(image, lms68_3D, vector, colour=[255, 0, 0]):
         h, w, _ = image.shape
         trg = 500
         scl = trg / h
-        dim = (int(trg), int(w * scl))
+        dim = (int(w * scl), int(trg))
         image = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
-        lms68_3D = lms68_3D.copy() * scl
+        lms = lms.copy() * scl
         
     # face diag
-    lms5 = lms68_3D[[36, 45, 30, 48, 54]][:, [0, 1]]
-    lms5[0] = lms68_3D[36:42].mean(axis=0)[[0, 1]]
-    lms5[1] = lms68_3D[42:48].mean(axis=0)[[0, 1]]
+    lms5 = lms.copy()
+    if lms5.shape[0] == 68:
+        lms5 = lms5[[36, 45, 30, 48, 54]]
+        lms5[0] = lms5[36:42].mean(axis=0)
+        lms5[1] = lms5[42:48].mean(axis=0)
     diag1 = np.linalg.norm(lms5[0] - lms5[4])
     diag2 = np.linalg.norm(lms5[1] - lms5[3])
     diag = np.max([diag1, diag2])
@@ -175,7 +179,7 @@ def draw_gaze_from_vector(image, lms68_3D, vector, colour=[255, 0, 0]):
     thickness = int(diag / 10)
     
     # gaze vector eye in image space
-    cnt = lms68_3D[30, [1, 0]].astype(np.int32)
+    cnt = lms5[2, [1, 0]].astype(np.int32)
     vector_norm = int(np.array(image.shape[1])/4.)
     g_vector = vector[[1, 0]] * np.array([-1., -1.]) * vector_norm
     start_point = cnt[[1, 0]]

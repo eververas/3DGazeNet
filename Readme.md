@@ -3,8 +3,8 @@
 Official implementation of the paper ***3DGazeNet: Generalizing Gaze Estimation with Weak-Supervision from Synthetic Views ([arxiv](https://arxiv.org/abs/2212.02997))***
 
 <p align="center">
-  <img src="assets/teaser_1_2.png" height="200" title="teaser12">
-  <img src="assets/teaser_2_2.png" height="200" title="teaser22">
+  <img src="assets/teaser_1_2.png" height="200" title="teaser1">
+  <img src="assets/teaser_2_2.png" height="200" title="teaser2">
 </p>
 
 https://github.com/Vagver/dense3Deyes/assets/25174551/4de4fb76-9577-4209-ba07-779356230131

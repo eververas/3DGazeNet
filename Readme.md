@@ -1,6 +1,7 @@
-# 3DGazeNet
+# [ECCV 2024] 3DGazeNet: Generalizing Gaze Estimation with Weak-Supervision from Synthetic Views
 
-Official implementation of the paper ***3DGazeNet: Generalizing Gaze Estimation with Weak-Supervision from Synthetic Views ([arxiv](https://arxiv.org/abs/2212.02997))***
+We propose to train general gaze estimation models which can be **directly employed in novel environments without adaptation**.
+To do so, we leverage the observation that head, body, and hand pose estimation benefit from revising them as dense 3D coordinate prediction, and similarly express gaze estimation as regression of dense 3D eye meshes.
 
 <p align="center">
   <img src="assets/teaser_1_2.png" height="200" title="teaser1">
@@ -91,3 +92,13 @@ python mpiiface_preprocess.py
 3\. To visualize the 3D eye fittings run the notebook in `notebooks/mpiiface_view_dataset.ipynb`.
 
 
+## Citation
+If you find our work useful in your research, please consider to cite our paper:
+```
+@inproceedings{ververas20223dgazenet,
+  title={3DGazeNet: Generalizing Gaze Estimation with Weak-Supervision from Synthetic Views},
+  author={Ververas, Evangelos and Gkagkos, Polydefkis and Deng, Jiankang and Christos Doukas, Michail and Guo, Jia and Zafeiriou, Stefanos},
+  booktitle={ECCV},
+  year={2024}
+}
+```

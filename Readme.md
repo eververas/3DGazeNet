@@ -95,7 +95,7 @@ python mpiiface_preprocess.py
 ## Citation
 If you find our work useful in your research, please consider to cite our paper:
 ```
-@inproceedings{ververas20223dgazenet,
+@inproceedings{ververas2024dgazenet,
   title={3DGazeNet: Generalizing Gaze Estimation with Weak-Supervision from Synthetic Views},
   author={Ververas, Evangelos and Gkagkos, Polydefkis and Deng, Jiankang and Christos Doukas, Michail and Guo, Jia and Zafeiriou, Stefanos},
   booktitle={ECCV},

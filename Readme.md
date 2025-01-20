@@ -1,7 +1,8 @@
 # [ECCV 2024] 3DGazeNet: Generalizing Gaze Estimation with Weak-Supervision from Synthetic Views
 
-We propose to train general gaze estimation models which can be **directly employed in novel environments without adaptation**.
-To do so, we leverage the observation that head, body, and hand pose estimation benefit from revising them as dense 3D coordinate prediction, and similarly express gaze estimation as regression of dense 3D eye meshes.
+3DGazeNet is a general gaze estimation model which can be **directly employed in novel environments without adaptation**.
+In 3DGazeNet we leverage the observation that head, body, and hand pose estimation benefit from revising them as dense 3D coordinate prediction, and similarly express gaze estimation as regression of dense 3D eye meshes. In addition, we employ a diverse set of unlabelled, in-the-wild face images to boost gaze generalization in real images and videos, by enforcing multi-view consistency constraints during training.
+
 
 <p align="center">
   <img src="assets/teaser_1_2.png" height="200" title="teaser1">
@@ -9,6 +10,12 @@ To do so, we leverage the observation that head, body, and hand pose estimation 
 </p>
 
 https://github.com/Vagver/dense3Deyes/assets/25174551/4de4fb76-9577-4209-ba07-779356230131
+
+
+## Demo
+
+For a demo of 3DGazeNet visit the dem,o folder: 
+
 
 ## Installation
 

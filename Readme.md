@@ -14,7 +14,7 @@ https://github.com/Vagver/dense3Deyes/assets/25174551/4de4fb76-9577-4209-ba07-77
 
 ## Demo
 
-For a demo of 3DGazeNet visit the dem,o folder: 
+For a demo of 3DGazeNet visit the [demo folder](demo).
 
 
 ## Installation

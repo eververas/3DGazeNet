@@ -10,6 +10,7 @@ demo/data/
 demo/log/
 demo/deliver/
 demo/test_dir
+demo/out_gaze.jpg
 
 *__pycache__
 *.ipynb_checkpoints

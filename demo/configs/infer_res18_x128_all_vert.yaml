@@ -1,0 +1,15 @@
+LOG_DIR: 'log'
+EXP_NAME: 'inference/res18_x128_all_vert'
+
+DETECTOR:
+  IMAGE_SIZE: 640
+  THRESHOLD: 0.5
+
+PREDICTOR:
+  MODE: 'vertex'
+  BACKBONE_TYPE: 'resnet'
+  PRETRAINED: 'data/checkpoints/res18_x128_all_vert.pth'
+  NUM_LAYERS: 18
+  NUM_POINTS_OUT_EYES: 962
+  IMAGE_SIZE: [ 128, 128 ]
+

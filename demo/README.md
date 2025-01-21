@@ -20,9 +20,9 @@ $ pip install -r requirements.txt
 $ pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ```
 
-<!-- ## Download Model and Data
+## Download Model and Data
 
-Download and extract the data directory from [here](https://drive.google.com/file/d/13Xw1Dx49oJ45TztACz_5fwy38cwvXMdD/view?usp=sharing). Place the data folder in the ./demo directory. -->
+Download and extract the data directory from [here](https://drive.google.com/file/d/1aVbPD51-8EqpJ89TqiTr40pmrpk6iESl/view?usp=sharing).
 
 ## Run the Demo
 ### Videos

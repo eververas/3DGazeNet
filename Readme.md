@@ -14,7 +14,7 @@ https://github.com/Vagver/dense3Deyes/assets/25174551/4de4fb76-9577-4209-ba07-77
 
 ## Demo
 
-For a demo of 3DGazeNet visit the [demo folder](demo).
+For a demo of 3DGazeNet on videos and single images visit the [demo folder](demo).
 
 
 ## Installation
@@ -57,55 +57,17 @@ $ python inference.py --cfg configs/inference/inference.yaml
 
 Bash scripts for the above commands can be found in the `scripts` directory.
 
-## Prepare Datasets 
-
-### ETH-XGaze
-1\. Download the 448*448 pixels version of the datset from the official source [here](https://ait.ethz.ch/xgaze). Place the dataset in the `datasets` folder in the root of this repo.
-
-2\. Fit 3D eyes on images using the following command. This will export a `.pkl` data file in the dataset's folder which is used for training.
-```
-cd tools
-python xgaze_preprocess.py
-```
-
-3\. To visualize the 3D eye fittings run the notebook in `notebooks/xgaze_view_dataset.ipynb`.
-
-### Gaze360
-
-1\. Download the datset from the official source [here](http://gaze360.csail.mit.edu/). Place the dataset in the `datasets` folder in the root of this repo.
-
-2\. Fit 3D eyes on images using the following command. This will export a `.pkl` data file in the dataset's folder which is used for training.
-```
-cd tools
-python gaze360_preprocess.py
-```
-
-3\. To visualize the 3D eye fittings run the notebook in `notebooks/gaze360_view_dataset.ipynb`.
-
-### GazeCapture
-
-1\. Download the datset from the official source [here](https://gazecapture.csail.mit.edu/). Place the dataset in the `datasets` folder in the root of this repo.
-
-### MPIIFaceGaze
-
-1\. Download the aligned dataset from the official source [here](https://www.perceptualui.org/research/datasets/MPIIFaceGaze/). Place the dataset in the `datasets` folder in the root of this repo.
-
-2\. Fit 3D eyes on images using the following command. This will export a `.pkl` data file in the dataset's folder which is used for training.
-```
-cd tools
-python mpiiface_preprocess.py
-```
-
-3\. To visualize the 3D eye fittings run the notebook in `notebooks/mpiiface_view_dataset.ipynb`.
 
 
 ## Citation
 If you find our work useful in your research, please consider to cite our paper:
 ```
-@inproceedings{ververas2024dgazenet,
-  title={3DGazeNet: Generalizing Gaze Estimation with Weak-Supervision from Synthetic Views},
-  author={Ververas, Evangelos and Gkagkos, Polydefkis and Deng, Jiankang and Christos Doukas, Michail and Guo, Jia and Zafeiriou, Stefanos},
-  booktitle={ECCV},
-  year={2024}
+@inproceedings{ververas20253dgazenet,
+  title={3DGazeNet: Generalizing 3D Gaze Estimation with Weak-Supervision from Synthetic Views},
+  author={Ververas, Evangelos and Gkagkos, Polydefkis and Deng, Jiankang and Doukas, Michail Christos and Guo, Jia and Zafeiriou, Stefanos},
+  booktitle={European Conference on Computer Vision},
+  pages={387--404},
+  year={2025},
+  organization={Springer}
 }
 ```
